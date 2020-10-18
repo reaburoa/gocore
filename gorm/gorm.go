@@ -1,87 +1,119 @@
 package gorm
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"github.com/sunmi-OS/gocore/retry"
 	"github.com/sunmi-OS/gocore/viper"
+	"github.com/sunmi-OS/gocore/xlog"
 )
 
-var Gorm sync.Map
-var defaultName = "dbDefault"
+type Client struct {
+	gormMaps      sync.Map
+	defaultDbName string
+}
 
+var _Gorm *Client
 
-var (
-	// ErrRecordNotFound record not found error, happens when haven't find any matched data when looking up with a struct
-	ErrRecordNotFound = gorm.ErrRecordNotFound
-	// ErrInvalidSQL invalid SQL error, happens when you passed invalid SQL
-	ErrInvalidSQL = gorm.ErrInvalidSQL
-	// ErrInvalidTransaction invalid transaction when you are trying to `Commit` or `Rollback`
-	ErrInvalidTransaction = gorm.ErrInvalidTransaction
-	// ErrCantStartTransaction can't start transaction when you are trying to start one with `Begin`
-	ErrCantStartTransaction = gorm.ErrCantStartTransaction
-	// ErrUnaddressable unaddressable value
-	ErrUnaddressable = gorm.ErrUnaddressable
-)
+func Gorm() *Client {
+	return _Gorm
+}
 
 // 初始化Gorm
-func NewDB(dbname string) {
-
-	var orm *gorm.DB
-	var err error
-
-	for orm, err = openORM(dbname); err != nil; {
-		fmt.Println("Database connection exception! 5 seconds to retry")
-		time.Sleep(5 * time.Second)
-		orm, err = openORM(dbname)
+func NewDB(dbname string) (g *Client) {
+	var (
+		orm *gorm.DB
+		err error
+	)
+	if _Gorm == nil {
+		_Gorm = &Client{defaultDbName: defaultName}
 	}
 
-	Gorm.LoadOrStore(dbname, orm)
+	// openORM
+	err = retry.Retry(func() error {
+		orm, err = openORM(dbname)
+		if err != nil {
+			xlog.Errorf("NewGorm(%s) error:%+v", dbname, err)
+			return err
+		}
+		return nil
+	}, 5, 3*time.Second)
+	if err != nil || orm == nil {
+		panic(err)
+	}
+
+	// store db client
+	_Gorm.gormMaps.Store(dbname, orm)
+	return _Gorm
 }
 
-// 设置获取db的默认值
-func SetDefaultName(dbname string) {
-	defaultName = dbname
+// SetDefaultName 设置默认DB Name
+func (c *Client) SetDefaultName(dbName string) {
+	c.defaultDbName = dbName
 }
 
-// 初始化Gorm
-func UpdateDB(dbname string) error {
+// NewOrUpdateDB 初始化或更新Gorm
+func (c *Client) NewOrUpdateDB(dbname string) error {
+	var (
+		orm *gorm.DB
+		err error
+	)
 
-	v, _ := Gorm.Load(dbname)
-
-	orm, err := openORM(dbname)
-
-	Gorm.Delete(dbname)
-	Gorm.LoadOrStore(dbname, orm)
-
-	err = v.(*gorm.DB).Close()
+	// first: open new gorm client
+	err = retry.Retry(func() error {
+		orm, err = openORM(dbname)
+		if err != nil {
+			xlog.Errorf("UpdateDB(%s) error:%+v", dbname, err)
+			return err
+		}
+		return nil
+	}, 5, 3*time.Second)
 	if err != nil {
 		return err
 	}
 
+	// second: load gorm client
+	v, _ := c.gormMaps.Load(dbname)
+
+	// third: delete old gorm client and store the new gorm client
+	c.gormMaps.Delete(dbname)
+	c.gormMaps.Store(dbname, orm)
+
+	// fourth: if old client is not nil, delete and close connection
+	if v != nil {
+		v.(*gorm.DB).Close()
+	}
 	return nil
 }
 
-// 通过名称获取Gorm实例
-func GetORMByName(dbname string) *gorm.DB {
+// GetORM 获取默认的Gorm实例
+// 目前仅支持 不传 或者仅传一个 dbname
+func (c *Client) GetORM(dbname ...string) *gorm.DB {
+	name := c.defaultDbName
+	if len(dbname) == 1 {
+		name = dbname[0]
+	}
 
-	v, _ := Gorm.Load(dbname)
-	return v.(*gorm.DB)
+	v, ok := c.gormMaps.Load(name)
+	if ok {
+		return v.(*gorm.DB)
+	}
+	return nil
 }
 
-// 获取默认的Gorm实例
-func GetORM() *gorm.DB {
-
-	v, _ := Gorm.Load(defaultName)
-	return v.(*gorm.DB)
+func (c *Client) Close() {
+	c.gormMaps.Range(func(dbName, orm interface{}) bool {
+		xlog.Warnf("close db %s", dbName)
+		c.gormMaps.Delete(dbName)
+		orm.(*gorm.DB).Close()
+		return true
+	})
 }
 
 func openORM(dbname string) (*gorm.DB, error) {
-
 	//默认配置
 	viper.C.SetDefault(dbname, map[string]interface{}{
 		"dbHost":          "127.0.0.1",
@@ -102,23 +134,20 @@ func openORM(dbname string) (*gorm.DB, error) {
 	dbType := viper.GetEnvConfig(dbname + ".dbType")
 	dbDebug := viper.GetEnvConfigBool(dbname + ".dbDebug")
 
-	connectString := dbUser + ":" + dbPasswd + "@tcp(" + dbHost + ":" + dbPort + ")/" + dbName + "?charset=utf8&parseTime=true&loc=Local"
-
+	connectString := dbUser + ":" + dbPasswd + "@tcp(" + dbHost + ":" + dbPort + ")/" + dbName + "?charset=utf8mb4&parseTime=true&loc=Local"
 	orm, err := gorm.Open(dbType, connectString)
-
 	if err != nil {
 		return nil, err
 	}
 
-	//连接池的空闲数大小
+	// 连接池的空闲数大小
 	orm.DB().SetMaxIdleConns(viper.C.GetInt(dbname + ".dbIdleconns_max"))
-	//最大打开连接数
+	// 最大打开连接数
 	orm.DB().SetMaxOpenConns(viper.C.GetInt(dbname + ".dbOpenconns_max"))
 
 	if dbDebug {
 		// 开启Debug模式
 		orm = orm.Debug()
 	}
-
-	return orm, err
+	return orm, nil
 }

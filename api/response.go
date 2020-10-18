@@ -2,13 +2,14 @@
 //	返回json参数,默认结构code,data,msg
 //	喵了个咪 <wenzhenxi@vip.qq.com> 2016/5/11
 //  依赖情况:
-//          "github.com/labstack/echo" 必须基于echo路由
+//          "github.com/labstack/echo/v4" 必须基于echo路由
 
 package api
 
 import (
-	"github.com/labstack/echo"
 	"net/http"
+
+	"github.com/labstack/echo/v4"
 )
 
 type Response struct {
@@ -17,9 +18,9 @@ type Response struct {
 }
 
 type RetParameter struct {
-	Code int         `json:"code";xml:"code"`
-	Data interface{} `json:"data";xml:"data"`
-	Msg  string      `json:"msg";xml:"msg"`
+	Code int         `json:"code" xml:"code"`
+	Data interface{} `json:"data" xml:"data"`
+	Msg  string      `json:"msg" xml:"msg"`
 }
 
 const DefaultCode = 1

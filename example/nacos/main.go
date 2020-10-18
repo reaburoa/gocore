@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"gocore/example/nacos/config"
+	"github.com/sunmi-OS/gocore/example/nacos/config"
 	"github.com/sunmi-OS/gocore/gorm"
+	"github.com/sunmi-OS/gocore/nacos"
 	"github.com/sunmi-OS/gocore/viper"
-	"gocore/nacos"
 )
 
 type App struct {
@@ -40,7 +40,7 @@ func main() {
 
 	i := 0
 	for {
-		orm1 := gorm.GetORMByName("remotemanageDB")
+		orm1 := gorm.GetORM("remotemanageDB")
 		app := App{}
 		err := orm1.Raw("select description from app").Find(&app).Error
 		fmt.Println(app)
@@ -53,5 +53,4 @@ func main() {
 		time.Sleep(time.Second * 1)
 	}
 	time.Sleep(time.Second * 1000)
-
 }

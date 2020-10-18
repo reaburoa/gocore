@@ -1,25 +1,22 @@
 package middleware
 
 import (
-	"fmt"
-
 	"encoding/json"
+	"fmt"
 	"runtime"
 	"time"
 
-	"github.com/labstack/echo"
-	echoMiddleware "github.com/labstack/echo/middleware"
+	"github.com/labstack/echo/v4"
+	echoMiddleware "github.com/labstack/echo/v4/middleware"
 )
 
-type (
-	Param struct {
-		Time  string      `json:"time"`
-		Url   string      `json:"url"`
-		Err   string      `json:"error"`
-		Query interface{} `json:"query"`
-		Stack string      `json:"stack"`
-	}
-)
+type Param struct {
+	Time  string      `json:"time"`
+	Url   string      `json:"url"`
+	Err   string      `json:"error"`
+	Query interface{} `json:"query"`
+	Stack string      `json:"stack"`
+}
 
 var returnMsg = `{"message":"Internal Server Error"}`
 
@@ -66,6 +63,7 @@ func RecoverWithConfig(config echoMiddleware.RecoverConfig) echo.MiddlewareFunc 
 					if !config.DisablePrintStack {
 						stackStr = string(stack[:length])
 					}
+
 					c.Response().Header().Set("Content-Type", "application/json;charset=UTF-8")
 					c.Response().Write([]byte(returnMsg))
 					param := &Param{

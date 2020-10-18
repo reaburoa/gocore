@@ -6,12 +6,13 @@ import (
 
 	"github.com/sunmi-OS/gocore/utils"
 	"github.com/sunmi-OS/gocore/viper"
-
 	"gopkg.in/redis.v5"
 )
 
 var RedisList sync.Map
 
+// Deprecated
+// 推荐使用 NewRedis
 func GetRedisOptions(db string) {
 
 	client, err := openRedis(db)
@@ -22,6 +23,7 @@ func GetRedisOptions(db string) {
 	RedisList.Store(db, client)
 }
 
+// Deprecated
 func UpdateRedis(db string) error {
 
 	v, _ := RedisList.Load(db)
@@ -42,6 +44,7 @@ func UpdateRedis(db string) error {
 
 }
 
+// Deprecated
 func GetRedisDB(db string) *redis.Client {
 	if v, ok := RedisList.Load(db); ok {
 		return v.(*redis.Client)
@@ -81,13 +84,12 @@ func openRedis(db string) (*redis.Client, error) {
 }
 
 func dbNameSplit(db string) (redisName, dbName string) {
-
 	kv := strings.Split(db, ".")
 	if len(kv) == 2 {
 		return kv[0], kv[1]
-	} else if len(kv) == 1 {
-		return "redisServer", kv[0]
-	} else {
-		panic("redis dbName Mismatch")
 	}
+	if len(kv) == 1 {
+		return "redisServer", kv[0]
+	}
+	panic("redis dbName Mismatch")
 }
