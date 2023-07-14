@@ -1,648 +1,221 @@
-<a href="https://sunmi.com"><img height="180" src="https://file.cdn.sunmi.com/gocore-logo.png"></a>
+![logo](https://file.cdn.sunmi.com/logo.png?x-oss-process=image/resize,h_200)
 
-# Integrated Development Framework
-
-
-SUNMI Go language development core library, aggregation configuration center, configuration management, database, service grid, database,
-All common components such as encryption and decryption are considered and packaged uniformly.
-Form a complete development framework to improve R&D efficiency;
-
-SUNMI Go语言开发核心库，聚合配置中心、配置管理、数据库、服务网格、数据库、
-加解密等各种常用组件进行统一考虑、统一封装，
-形成一套完整开发框架来提升研发效率；
-
+介绍
 ---
 
-## Installation && Usage
+[![Go Report Card](https://goreportcard.com/badge/github.com/sunmi-OS/gocore)](https://goreportcard.com/report/github.com/sunmi-OS/gocore)
+[![GoDoc](https://godoc.org/github.com/sunmi-OS/gocore/v2?status.svg)](https://pkg.go.dev/github.com/sunmi-OS/gocore/v2)
+[![Release](https://img.shields.io/github/v/release/sunmi-OS/gocore.svg?style=flat-square)](https://github.com/sunmi-OS/gocore/releases)
 
-```bash
-go get github.com/sunmi-OS/gocore
+gocore是一款高度集成的开发框架和脚手架，支持api、rpc、job、task等开发方式，并集成各类主流开源库和中间件融入最佳实践，简化研发流程、提高效率、统一规范。
+
+![cli](https://file.cdn.sunmi.com/gocore_cli.svg)
+
+## 特性
+
+- 底层基于主流框架gin、gorm、viper、zap等进行封装整合
+- 提供脚手架gocore工具快速初始化项目结构、接口参数路由、数据库模型（包含逆向生成status）
+- 支持多环境多套配置文件并且和nacos配置中心打通，支持热更新等特性
+- 提供签名、加密、文件、邮件、随机数、链路追踪、时间、日志等基础工具
+- 无侵入式理念让开发精力集中在业务层
+- 通过Docker、K8S、istio等体系下建立的研发流程环境管理策略
+- 封装常规阿里云中间件SLS、RocketMQ、nacos
+- 开箱即用
+
+## 安装
+
+- 环境要求
+    - Golang > 1.16
+    - [Go module](https://github.com/golang/go/wiki/Modules)
+
+
+### 获取项目包
+
+```shell
+> go get -u github.com/sunmi-OS/gocore/v2
 ```
 
-```go
-import (
-	"github.com/sunmi-OS/gocore/xxxxx"
-)
+* 脚手架安装
+```shell
+> go install github.com/sunmi-OS/gocore/v2/tools/gocore@latest
+
+> gocore --version
+
+   __ _    ___     ___    ___    _ __    ___
+  / _` |  / _ \   / __|  / _ \  | '__|  / _ \
+ | (_| | | (_) | | (__  | (_) | | |    |  __/
+  \__, |  \___/   \___|  \___/  |_|     \___|
+  |___/
+
+gocore version v1.0.0
 ```
 
-### Supported Go versions
 
-- Golang > 1.13
-- [Go module](https://github.com/golang/go/wiki/Modules)
+## 快速开始
 
----
+创建一个示例项目
+```shell
+# 创建工程文件夹
+> mkdir test
+> cd test
 
-## Examples
-
-### Http Service 
-
-```go
-package main
-
-import (
-    "os"
-    "os/signal"
-    "syscall"
-    "time"
-
-    "github.com/gin-gonic/gin"
-    "github.com/sunmi-OS/gocore/ecode"
-    "github.com/sunmi-OS/gocore/web"
-)
-
-func main() {
-    c := &web.Config{Port: ":2233"}
-    // init web server
-    // prod environment, please add .Release() 
-    // e.g: web.InitGin(c).Release() 
-    g := web.InitGin(c)
-
-    // init route
-    initRouteG(g.Gin)
-    
-    // start http server 
-    g.Start()
-    
-    // listen signal
-    ch := make(chan os.Signal)
-    signal.Notify(ch, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
-    for {
-        si := <-ch
-        switch si {
-        case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
-            time.Sleep(time.Second)
-            // todo something e.g: close service, dao ...
-    
-            time.Sleep(time.Second)
-            return
-        case syscall.SIGHUP:
-        default:
-            return
-        }
-    }
-}
-
-func initRouteG(g *gin.Engine) {
-	g.GET("/gin/ping", func(c *gin.Context) {
-		e := ecode.New(2233, "SUCCESS")
-		web.JSON(c, nil, e)
-	})
-}
-```
-
-### Type Conversion
-
-```go
-package main
-
-import (
-	"fmt"
-
-	"github.com/spf13/cast"
+# 创建yaml配置文件模板gocore.yaml
+> gocore yaml create 
 ...
-var i64 int64
-i64 = 60
+Welcome to GoCore, Configuration file has been generated.
 
-toString(cast.ToString(i64))
-```
+# 修改gocore.yaml模板之后,根据yaml文件创建工程项目
+> gocore service create 
 
-### CronJob
+   __ _    ___     ___    ___    _ __    ___
+  / _` |  / _ \   / __|  / _ \  | '__|  / _ \
+ | (_| | | (_) | | (__  | (_) | | |    |  __/
+  \__, |  \___/   \___|  \___/  |_|     \___|
+  |___/
 
-```go
-package main
+Run go mod init.
+[11/11] Initialize the Request return parameters... 100% [========================================]   
+Run go mod tidy .
+Run go fmt .
+goimports -l -w .
+Welcome to GoCore, the project has been initialized.
 
-import (
-	"fmt"
-
-	"github.com/robfig/cron"
-
-...
-c := cron.New()
-c.AddFunc("0 30 * * * *", func() { fmt.Println("Every hour on the half hour") })
-c.AddFunc("0 * * * * *", func() { fmt.Println("Every minutes") })
-c.AddFunc("@hourly", func() { fmt.Println("Every hour") })
-c.AddFunc("@every 1h30m", func() { fmt.Println("Every hour thirty") })
-
-// Synchronous blocking
-c.Run()
-
-// Run asynchronously
-//c.Start()
-```
-
-### Encryption
-
-AES:
-
-```go
-package main
-
-import (
-	"fmt"
-
-	"github.com/sunmi-OS/gocore/encryption/aes"
-
-...
-
-str, _ := aes.AesEncrypt("sunmi", "sunmiWorkOnesunmiWorkOne")
-fmt.Println(str)
-str2, _ := aes.AesDecrypt(str, "sunmiWorkOnesunmiWorkOne")
-fmt.Println(str2)
-```
-
-DES:
-
-```go
-package main
-
-import (
-	"fmt"
-
-	"github.com/sunmi-OS/gocore/encryption/des"
-)
-
-...
-
-str, _ := des.DesEncrypt("sunmi", "sunmi388", "12345678")
-fmt.Println(str)
-str2, _ := des.DesDecrypt(str, "sunmi388", "12345678")
-fmt.Println(str2)
-
-str, _ = des.DesEncryptECB("sunmi", "sunmi388")
-fmt.Println(str)
-str2, _ = des.DesDecryptECB(str, "sunmi388")
-fmt.Println(str2)
-
-str, _ = des.TripleDesEncrypt("sunmi", "sunmi388sunmi388sunmi388", "12345678")
-fmt.Println(str)
-str2, _ = des.TripleDesDecrypt(str, "sunmi388sunmi388sunmi388", "12345678")
-fmt.Println(str2)
-```
-
-RSA:
-
-```go
-package main
-
-import (
-	"errors"
-	"log"
-
-	"github.com/sunmi-OS/gocore/encryption/gorsa"
-)
-
-var Pubkey = `-----BEGIN public-----
-...
------END public-----
-`
-
-var Pirvatekey = `-----BEGIN private-----
-...
------END private-----
-`
-
-func main() {
-	// Public key encryption and private key decryption
-	if err := applyPubEPriD(); err != nil {
-		log.Println(err)
-	}
-	// Private key encryption, public key decryption
-	if err := applyPriEPubD(); err != nil {
-		log.Println(err)
-	}
-}
-
-// Public key encryption and private key decryption
-func applyPubEPriD() error {
-	pubenctypt, err := gorsa.PublicEncrypt(`hello world`, Pubkey)
-	if err != nil {
-		return err
-	}
-
-	pridecrypt, err := gorsa.PriKeyDecrypt(pubenctypt, Pirvatekey)
-	if err != nil {
-		return err
-	}
-	if string(pridecrypt) != `hello world` {
-		return errors.New(`Decryption failed`)
-	}
-	return nil
-}
-
-// Private key encryption, public key decryption
-func applyPriEPubD() error {
-	prienctypt, err := gorsa.PriKeyEncrypt(`hello world`, Pirvatekey)
-	if err != nil {
-		return err
-	}
-
-	pubdecrypt, err := gorsa.PublicDecrypt(prienctypt, Pubkey)
-	if err != nil {
-		return err
-	}
-	if string(pubdecrypt) != `hello world` {
-		return errors.New(`Decryption failed`)
-	}
-	return nil
-}
-
+# 下次迭代增加新的接口或数据表更新代码
+> gocore service create 
 
 ```
 
-### GoMail
+工程创建时导入已有数据库
+```shell
+# 创建工程文件夹
+> mkdir test 
+> cd test
 
+# 创建yaml配置文件模板gocore.yaml
+> gocore yaml create 
 
-Config:
+# 创建连接数据库的配置文件模板mysql.yaml
+> gocore mysql create_yaml 
 
-```toml
-[email]
-host="smtp.exmail.qq.com"
-port=465
-username="test@sunmi.com"
-password="password"
+# 修改mysql.yaml之后,连接数据库将字段合并到gocore.yaml
+> gocore mysql add 
 
-```
-
-```go
-package main
-
-import (
-	"github.com/sunmi-OS/gocore/gomail"
-	"github.com/sunmi-OS/gocore/viper"
-)
-
-func main() {
-
-	viper.NewConfig("config", "conf")
-
-	gomail.SendEmail("wenzhenxi@vip.qq.com", "service@sunmi.com", "service", "title", "msg")
-}
-
-
+# 修改gocore.yaml模板之后,根据yaml文件创建工程项目
+> gocore service create 
 ```
 
 
-### Grpc
+## 配置文件
 
-- server
-```go
-type Print struct {
-}
-
-func (p *Print) PrintOK(ctx context.Context, in *proto.Request) (*proto.Response, error) {
-	return &proto.Response{Code: 1, Data: "ok", Message: "Hello "}, nil
-}
-
-func main() {
-
-	c := &rpcx.GrpcServerConfig{Timeout: 500}
-
-	s := new(Print)
-
-	rpcx.NewGrpcServer("server_name", ":2233", c).
-		RegisterService(func(server *grpc.Server) {
-			// register service
-			proto.RegisterPrintServiceServer(server, s)
-		}).Start()
-}
+```yaml
+service:
+  projectName: demo #项目名称
+  version: v1.0.0 #项目版本号
+config:
+  cNacos: true #是否使用nacos
+  cRocketMQConfig: true #是否使用rocketMQ
+  cMysql: #mysql配置
+    - name: app #数据库名称
+      hotUpdate: false #是否热更新
+      models: #model文件
+        - name: user #表名称
+          auto: false #是否自动建表
+          fields: #表字段,gorm规则,一行一个自动
+            - column:id;primary_key;type:int AUTO_INCREMENT
+            - column:name;type:varchar(100) NOT NULL;default:'';comment:'用户名';unique_index
+          comment: 用户表 #表备注
+  cRedis: #redis配置
+    - name: default #redis名称
+      hotUpdate: false #是否热更新
+      index:
+        db0: 0 #选择第几个db
+rpcEnable: false #是否生成rpc服务层
+httpApiEnable: true #是否生成接口程序
+jobEnable: true #是否生成常驻任务
+httpApis:
+  host: 0.0.0.0 #api接口监听ip地址
+  port: "80" #api接口监听ip端口
+  apis:
+    - prefix: /app/user #api接口前缀
+      moduleName: user #模块名称
+      handle: #api接口
+        - name: GetUserInfo #api接口方法名称,完整路由是/app/user/GetUserInfo
+          method: Any
+          requestParams: #api接口请求参数
+            - name: uid #字段名称
+              type: int #字段类型
+              comment: 用户ID #字段备注
+              validate: required,min=1,max=100000 #validate校验规则
+          responseParams: #api响应参数
+            - name: detail  #字段名称
+              type: '*User'  #字段类型,非基础字段类型,表示嵌套结构体,引用params中的结构体
+              comment: 用户详情 #字段备注
+              validate: ""
+            - name: list
+              type: '[]*User'
+              comment: 用户列表
+              validate: ""
+          comment: 获取用户信息
+  params:
+    User:
+      - name: uid
+        type: int
+        comment: 用户ID
+        validate: ""
+      - name: name
+        type: string
+        comment: 用户名
+        validate: ""
+jobs:
+  - name: InitUser #一次性任务,常驻任务方法名称
+    comment: 初始化默认用户 #一次性任务,常驻任务备注
 ```
 
-- client
-```go
-func main() {
-	client, err := rpcx.NewGrpcClient("server_name", ":2233", nil)
-	if err != nil {
-		xlog.Errorf("rpcx.NewGrpcClient, err:%+v", err)
-		return
-	}
-	conn, ok := client.Conn()
-	if !ok {
-		xlog.Error("not ok")
-		return
-	}
-	printGRPC := proto.NewPrintServiceClient(conn)
+## 生成的工程目录结构
+使用三层架构(http服务: api->biz->dal,rpc服务: rpc->biz->dal)：
 
-	req := &proto.Request{}
-	rsp, err := printGRPC.PrintOK(context.Background(), req)
-	if err != nil {
-		xlog.Errorf("printGRPC.PrintOK(%+v), err:%+v", req, err)
-		return
-	}
-	xlog.Info(rsp)
-}
+- api(rpc) 接口表示层 Application Programming Interface
+  - 定义接口名称，校验入参，调用biz层方法处理业务逻辑并返回响应数据
+  - 只能调用biz层方法，禁止调用dal层方法
+- biz 业务逻辑层 Business Logic Layer
+  - 业务逻辑处理层，接收api层传入的参数结合调用dal层方法完成业务逻辑处理并返回必要数据
+  - 禁止调用api层方法
+- dal 数据访问层 Data Access Layer
+  - 负责对DB的访问，本层禁止相互的方法调用
+  - 禁止调用api和biz层方法
+
+目录结构说明：
 ```
-
-### Istio
-
-```go
-func PrintOk(in *Request, trace istio.TraceHeader) (*Response, error) {
-	conn, ok := Rpc.Next()
-	if !ok || conn == nil {
-		return nil, errors.New("rpc connect fail")
-	}
-	client := NewPrintServiceClient(conn)
-
-	ctx := metadata.NewOutgoingContext(context.Background(), trace.Grpc_MD)
-	return client.PrintOK(ctx, in)
-}
-...
-
-trace := istio.SetHttp(c.Request().Header)
-req := &printpb.Request{
-    Message: "test",
-}
-resp, err := printpb.PrintOk(req, trace)
-if err != nil {
-    log.Sugar.Errorf("请求失败: %s", err.Error())
-    return err
-}
-```
-
-
-### HttpLib
-
-```go
-b := httplib.Post("https://baidu.com/")
-b.Param("username", "astaxie")
-b.Param("password", "123456")
-b.PostFile("uploadfile1", "httplib.pdf")
-b.PostFile("uploadfile2", "httplib.txt")
-str, err := b.String()
-if err != nil {
-    fmt.Println(err)
-}
-fmt.Println(str)
-```
-
-### Logs
-
-- log
-```go
-xlog.Info("info")
-xlog.Debug("debug")
-xlog.Warn("warning")
-xlog.Error("error")
-```
-
-- zap log
-```go
-xlog.Zap().Infof("%+v", struct {
-    Name string
-    Age  int
-}{
-    Name: "Jerry",
-    Age:  18,
-})
-xlog.Zap().Debug("zap debug")
-xlog.Zap().Warn("zap warn")
-xlog.Zap().Error("zap error")
-```
-
-### Nacos
-
-```go
-func InitNacos(runtime string) {
-	nacos.SetRunTime(runtime)
-	nacos.ViperTomlHarder.SetviperBase(baseConfig)
-	switch runtime {
-	case "local":
-		nacos.AddLocalConfig(runtime, localConfig)
-	default:
-		Endpoint := os.Getenv("ENDPOINT")
-		NamespaceId := os.Getenv("NAMESPACE_ID")
-		AccessKey := os.Getenv("ACCESS_KEY")
-		SecretKey := os.Getenv("SECRET_KEY")
-		if Endpoint == "" || NamespaceId == "" || AccessKey == "" || SecretKey == "" {
-			panic("The configuration file cannot be empty.")
-		}
-		err := nacos.AddAcmConfig(runtime, constant.ClientConfig{
-			Endpoint:    Endpoint,
-			NamespaceId: NamespaceId,
-			AccessKey:   AccessKey,
-			SecretKey:   SecretKey,
-		})
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-
-...
-
-config.InitNacos("local")
-
-nacos.ViperTomlHarder.SetDataIds("DEFAULT_GROUP", "adb")
-nacos.ViperTomlHarder.SetDataIds("pay", "test")
-
-nacos.ViperTomlHarder.SetCallBackFunc("DEFAULT_GROUP", "adb", func(namespace, group, dataId, data string) {
-
-    err := gorm.UpdateDB("remotemanageDB")
-    if err != nil {
-        fmt.Println(err.Error())
-    }
-})
-
-nacos.ViperTomlHarder.NacosToViper()
-```
-
-
-
-### Redis
-
-
-```toml
-[redisServer]
-host = "host"
-port = ":6379"
-auth = "password"
-prefix = "tob_"
-encryption = 0
-
-[redisDB]
-e_invoice = 34
-
-[OtherRedisServer]
-host = "host"
-port = ":6379"
-auth = "password"
-prefix = "tob_"
-encryption = 0
-
-[OtherRedisServer.redisDB]
-e_invoice = 34
-```
-
-```go
-viper.NewConfig("config", "conf")
-redis.GetRedisOptions("e_invoice")
-redis.GetRedisDB("e_invoice").Set("test", "sunmi", 0)
-fmt.Println(redis.GetRedisDB("e_invoice").Get("test").String())
-
-redis.GetRedisOptions("OtherRedisServer.e_invoice")
-redis.GetRedisDB("OtherRedisServer.e_invoice").Set("test", "sunmi_other", 0)
-fmt.Println(redis.GetRedisDB("OtherRedisServer.e_invoice").Get("test").String())
-fmt.Println(redis.GetRedisDB("e_invoice").Get("test").String())
-```
-
-### Utils
-
-
-file:
-```go
-fmt.Println("GetPath:%s", utils.GetPath())
-fmt.Println(utils.IsDirExists("/tmp/go-build803419530/command-line-arguments/_obj/exe"))
-fmt.Println(utils.MkdirFile("test"))
-```
-
-gzip:
-```go
-fmt.Println(utils.GzipEncode("dsxdjdhskfjkdsfhsdjlaal"))
-var m = utils.GzipEncode("dsxdjdhskfjkdsfhsdjlaal")
-fmt.Println(utils.GzipDecode(m))
-```
-
-random:
-```go
-fmt.Println("RandInt", utils.RandInt(13, 233))
-
-fmt.Println("RandInt64", utils.RandInt64(13, 233))
-
-fmt.Println("GetRandomString", utils.GetRandomString(122))
-
-fmt.Println("GetRandomNumeral", utils.GetRandomNumeral(133))
-```
-
-sign:
-```go
-var secret, params string
-secret = "123"
-params = "abdsjfhdshfksdhf"
-m, err := utils.GetParamMD5Sign(secret, params)
-if err != nil {
-    fmt.Println("Error:", err)
-}
-fmt.Println("GetParamMD5Sign", m)
-
-var maintain string
-
-maintain = "dfssjfdsdfghjdsfgdsj"
-n, err := utils.GetSHA(maintain)
-if err != nil {
-    fmt.Println("GetSHA failed error", err)
-}
-fmt.Println("GetSHA", n)
-
-l, err := utils.GetParamHmacSHA256Sign(secret, params)
-if err != nil {
-    fmt.Println("GetParamHmacSHA256Sign failed err", err)
-}
-
-fmt.Println("GetParamHmacSHA256Sign", l)
-
-p, err := utils.GetParamHmacSHA512Sign(secret, params)
-if err != nil {
-    fmt.Println("GetParamHmacSHA512Sign failed error", err)
-}
-fmt.Println("GetParamHmacSHA512Sign", p)
-
-u, err := utils.GetParamHmacSHA1Sign(secret, params)
-if err != nil {
-    fmt.Println("GetParamHmacSHA1Sign failed error", err)
-}
-
-fmt.Println("GetParamHmacSHA1Sign", u)
-
-c, err := utils.GetParamHmacMD5Sign(secret, params)
-if err != nil {
-    fmt.Println("GetParamHmacMD5Sign failed error", err)
-}
-
-fmt.Println("GetParamHmacMD5Sign", c)
-
-d, err := utils.GetParamHmacSha384Sign(secret, params)
-if err != nil {
-    fmt.Println("GetParamHmacSha384Sign failed error", err)
-}
-
-fmt.Println("GetParamHmacSha384Sign", d)
-
-f, err := utils.GetParamHmacSHA256Base64Sign(secret, params)
-if err != nil {
-    fmt.Println("GetParamHmacSHA256Base64Sign failed error", err)
-}
-
-fmt.Println("GetParamHmacSHA256Base64Sign", f)
-
-var hmac_key, hmac_data string
-hmac_key = "12322334234"
-hmac_data = "sjhdjsdjfh"
-t := utils.GetParamHmacSHA512Base64Sign(hmac_key, hmac_data)
-
-fmt.Println("GetParamHmacSHA512Base64Sign", t)
-```
-
-urlcode:
-```go
-var urls string
-urls = "https://www.sunmi.com/"
-e, err := utils.UrlEncode(urls)
-if err != nil {
-    fmt.Println("UrlEncode failed error", err)
-}
-
-fmt.Println("UrlEncode", e)
-
-r, err := utils.UrlDecode(urls)
-if err != nil {
-    fmt.Println("UrlDecode failed error", err)
-}
-fmt.Println("UrlDecode", r)
-```
-
-utils:
-```go
-d := utils.GetDate()
-fmt.Println("GetData", d)
-
-m := utils.GetRunTime()
-fmt.Println("GetRunTime", m)
-
-var encryption string
-encryption = "1243sdfds"
-
-t := utils.GetMD5(encryption)
-fmt.Println("GetMD5", t)
-```
-
-
-### Viper
-
-```toml
-[system]
-port = ":10001"
-OpenDES = false
-DESkey = "deskey12"
-DESiv = "12345678"
-MD5key = "SUNMIMD5"
-DESParam = "params"
-
-[dbDefault]
-dbHost = "xxxxx.com"     #数据库连接地址
-dbName = "xxxxx"         #数据库名称
-dbUser = "xxxxx"         #数据库用户名
-dbPasswd = "xxxxx"       #数据库密码
-dbPort = "3306"          #数据库端口号
-dbOpenconns_max = 20     #最大连接数
-dbIdleconns_max = 1      #最大空闲连接
-dbType = "mysql"         #数据库类型
-
-```
-
-
-```go
-// 指定配置文件所在的目录和文件名称
-viper.NewConfig("config", "conf")
-// 打印读取的配置
-fmt.Println("port : ", viper.C.Get("system.port"))
-fmt.Println("ENV RUN_TIME : ", viper.GetEnvConfig("run.time"))
+├── app                  // 源代码
+│  ├── api               // 接口表示层，无http服务的话删除此文件夹
+│  ├── rpc               // rpc服务表示层，无rpc服务删除此文件夹
+│  ├── biz               // 业务逻辑层
+│  ├── dal               // 数据访问层
+│  ├── middleware        // 中间件
+│  ├── cmd               // 任务启动入口和定义各组件初始化方法
+│  │  ├── api.go
+│  │  ├── init.go
+│  │  └── job.go
+│  ├── conf              // 配置文件
+│  │  ├── base.go        // 基本配置
+│  │  └── local.go       // 用于本地调试配置文件，本地环境变量需要设置RUN_TIME=local
+│  ├── errcode           // 错误和错误码定义
+│  │  └── errcode.go
+│  ├── job               // 任务定义入口，定时任务、一次性任务、消费队列任务
+│  ├── param             // 入参和出参结构体定义
+│  │  └── user.go
+│  ├── pkg               // 依赖包和三方包
+│  │  ├── locationtools  // 三方包封装示例
+│  │  │  └── country.go
+│  │  └── util           // 实现的常用方法
+│  │      └── util.go
+│  ├── route             // 路由定义
+│  │   └── routers
+│  ├── go.mod
+│  ├── go.mod
+│  └── main.go           // 入口文件
+├── .gitignore
+├── CODEOWNERS           // 用来定义谁负责仓库中的特定文件或目录
+├── Dockerfile
+└── README.md
 ```

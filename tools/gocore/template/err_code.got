@@ -1,0 +1,10 @@
+<%: func FromErrCode(buffer *bytes.Buffer) %>
+package errcode
+
+import (
+	"github.com/sunmi-OS/gocore/v2/api/ecode"
+)
+
+var (
+	ErrorNotFound = ecode.NewV2(50001, "record not found")
+)

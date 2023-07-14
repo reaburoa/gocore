@@ -1,0 +1,19 @@
+<%: func FromApiRoutes(name, routes string, buffer *bytes.Buffer) %>
+package route
+
+import (
+	"github.com/gin-gonic/gin"
+	"net/http"
+	_ "net/http/pprof"
+
+	"<%== name %>/api"
+)
+
+func Routes(router *gin.Engine) {
+	// 根目录健康检查
+	router.Any("/health", func(c *gin.Context) {
+		c.String(http.StatusOK, "Welcome GoCore Service")
+	})
+
+    <%== routes %>
+}
