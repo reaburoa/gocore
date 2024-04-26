@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 	"github.com/sunmi-OS/gocore/v2/conf/viper"
 	"github.com/sunmi-OS/gocore/v2/glog"
 	"github.com/sunmi-OS/gocore/v2/utils/closes"
@@ -74,7 +74,6 @@ func NewOrUpdateRedis(dbName string) error {
 	}
 
 	v, _ := Map.Load(dbName)
-	Map.Delete(dbName)
 	Map.Store(dbName, rc)
 
 	if v != nil {

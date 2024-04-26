@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 	"time"
+
+	"github.com/bytedance/sonic"
 )
 
 const (
@@ -38,11 +41,7 @@ func GetRunTime() string {
 	if runTime != "" {
 		return runTime
 	}
-	runTime = os.Getenv("RUN_TIME")
-	if runTime == "" {
-		fmt.Println("No RUN_TIME Can't start")
-	}
-	return runTime
+	return os.Getenv("RUN_TIME")
 }
 
 func GetAppName() string {
@@ -51,7 +50,7 @@ func GetAppName() string {
 	}
 	appName = os.Getenv("APP_NAME")
 	if appName == "" {
-		fmt.Println("No APP_NAME Set")
+		appName = "UnknownAppName"
 	}
 	return appName
 }
@@ -118,16 +117,29 @@ func Either(list ...string) string {
 	return ""
 }
 
-// GetAccesslogPath accesslog路径
+// GetAccesslogPath accesslog path
 func GetAccesslogPath() string {
 	var path string
+	path = os.Getenv("ACCESS_LOG_PATH")
+	if path != "" {
+		return path
+	}
+	appName = GetAppName()
 	switch runtime.GOOS {
 	case "windows":
-		path = "./logs/access.log"
+		path = "./logs/" + appName + ".log"
 	case "darwin":
-		path = "./logs/access.log"
+		path = "./logs/" + appName + ".log"
 	default: // "linux", "freebsd", "openbsd", "netbsd"
-		path = "/data/logs/access.log"
+		path = "/data/logs/" + appName + ".log"
 	}
 	return path
+}
+
+func LogContentUnmarshal(content string) interface{} {
+	var value map[string]interface{}
+	if strings.HasPrefix(content, "{") && sonic.UnmarshalString(content, &value) == nil {
+		return value
+	}
+	return content
 }

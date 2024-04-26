@@ -21,6 +21,7 @@ var fileBuffer = new(bytes.Buffer)
 var localConf = `
 [base]
 debug = true
+logLevel = "info" #线上环境需要设置为 error
 `
 
 var goCoreConfig *conf.GoCore
@@ -29,7 +30,7 @@ var goCoreConfig *conf.GoCore
 // 模板引擎生成语句 hero -source=./tools/gocore/template -extensions=.got,.md,.docker
 func CreateCode(root, sourceCodeRoot, name string, config *conf.GoCore) {
 	goCoreConfig = config
-	newProgress(11, "start preparing...")
+	newProgress(12, "start preparing...")
 	time.Sleep(time.Second)
 	progressNext("Initialize the directory structure...")
 	mkdir(sourceCodeRoot)
@@ -39,6 +40,8 @@ func CreateCode(root, sourceCodeRoot, name string, config *conf.GoCore) {
 	createMain(sourceCodeRoot, name)
 	progressNext("Initialize the Dockerfile file...")
 	createDockerfile(root)
+	progressNext("Initialize the .gitignore file...")
+	createGitignore(root)
 	progressNext("Initialize the Readme file...")
 	createReadme(root)
 	progressNext("Initialize the errcode folder...")
@@ -97,6 +100,11 @@ func createConf(root string, name string) {
 func createDockerfile(root string) {
 	FromDockerfile(fileBuffer)
 	fileForceWriter(fileBuffer, root+"/Dockerfile")
+}
+
+func createGitignore(root string) {
+	FromGitignore(fileBuffer)
+	fileForceWriter(fileBuffer, root+"/.gitignore")
 }
 
 func createReadme(root string) {
@@ -163,13 +171,16 @@ func createDal(root, name string) {
 		localConf += buff.String()
 
 		for _, v1 := range goCoreConfig.Config.CRedis {
-			for k2 := range v1.Index {
+			for k2, v2 := range v1.Index {
 				localConf += `
 [` + v1.Name + `]
 host = "" 
 port = ":6379"
 auth = ""
 prefix = ""
+
+[` + v1.Name + `.redisDB]
+` + k2 + ` = ` + cast.ToString(v2) + `
 `
 
 				baseConf += `[` + v1.Name + `.redisDB]
@@ -329,8 +340,7 @@ func createApi(root, name string) {
 		fileForceWriter(fileBuffer, apiPath)
 	}
 	FromApiRoutes(name, routesStr, fileBuffer)
-	fileForceWriter(fileBuffer, root+"/route/routers.go")
-
+	fileForceWriter(fileBuffer, root+"/route/router.go")
 }
 
 // create rpc directory

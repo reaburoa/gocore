@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/sunmi-OS/gocore/v2/conf/viper"
 )
 
@@ -18,14 +18,18 @@ func connRabbitmq() error {
 	vhost := viper.GetEnvConfig("rabbitmq.vhost").String()
 	user := url.QueryEscape(viper.GetEnvConfig("rabbitmq.user").String())
 	password := url.QueryEscape(viper.GetEnvConfig("rabbitmq.password").String())
-
+	scheme := "amqp"
+	enableTLS := viper.GetEnvConfig("rabbitmq.enableTLS").Bool()
+	if enableTLS {
+		scheme = "amqps"
+	}
 	amqpConfig := amqp.Config{
 		Vhost:     vhost,
 		Heartbeat: 10 * time.Second,
 		Locale:    "en_US",
 	}
 
-	conn, err := amqp.DialConfig(fmt.Sprintf("amqp://%s:%s@%s:%s/", user, password, host, port), amqpConfig)
+	conn, err := amqp.DialConfig(fmt.Sprintf("%s://%s:%s@%s:%s/", scheme, user, password, host, port), amqpConfig)
 	if err != nil {
 		return err
 	}
