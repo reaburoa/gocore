@@ -35,14 +35,14 @@ type ErrorV2 struct {
 }
 
 func (e *ErrorV2) Error() string {
-	return fmt.Sprintf("error: code = %d msg = %s metadata = %v cause = %v", e.ErrorStatus.Code, e.ErrorStatus.Msg, e.Metadata, e.cause)
+	return fmt.Sprintf("code = %d msg = %s metadata = %v cause = %v", e.ErrorStatus.Code, e.Msg, e.Metadata, e.cause)
 }
 
 // Code returns the code of the error.
 func (e *ErrorV2) Code() int { return int(e.ErrorStatus.Code) }
 
 // Message returns the msg of the error.
-func (e *ErrorV2) Message() string { return e.ErrorStatus.Msg }
+func (e *ErrorV2) Message() string { return e.Msg }
 
 // Unwrap provides compatibility for Go 1.13 error chains.
 func (e *ErrorV2) Unwrap() error { return e.cause }

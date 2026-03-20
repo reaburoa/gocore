@@ -8,13 +8,13 @@ import (
 
 func TestEcodeWithReason(t *testing.T) {
 	e := FromError(Success)
-	t.Log(e.Error())   // error: code = 1 message = success metadata = map[] cause = <nil>
+	t.Log(e.Error())   // code = 1 message = success metadata = map[] cause = <nil>
 	t.Log(e.Code())    // 1
 	t.Log(e.Message()) // success
 	t.Log("============================")
 
 	e2 := FromError(nil)
-	t.Log(e2.Error())   // error: code = 1 message = success metadata = map[] cause = <nil>
+	t.Log(e2.Error())   // code = 1 message = success metadata = map[] cause = <nil>
 	t.Log(e2.Code())    // 1
 	t.Log(e2.Message()) // success
 	t.Log("============================")
@@ -23,14 +23,14 @@ func TestEcodeWithReason(t *testing.T) {
 		"name":   "jerry",
 		"reason": "欠话费了",
 	})
-	t.Log(sms.Error())   // error: code = 10000 message = 中国电信 metadata = map[name:jerry reason:我是metadata] cause = <nil>
+	t.Log(sms.Error())   // code = 10000 message = 中国电信 metadata = map[name:jerry reason:我是metadata] cause = <nil>
 	t.Log(sms.Code())    // 10000
 	t.Log(sms.Message()) // 中国电信
 	t.Log(sms.Metadata)  // map[name:jerry reason:欠话费了]
 	t.Log("============================")
 
 	mms := NewV2(10086, "中国移动").WithCause(errors.New("我是原因"))
-	t.Log(mms.Error())   // error: code = 10086 message = 中国移动 metadata = map[] cause = 我是原因
+	t.Log(mms.Error())   // code = 10086 message = 中国移动 metadata = map[] cause = 我是原因
 	t.Log(mms.Code())    // 10086
 	t.Log(mms.Message()) // 中国电信
 	t.Log(mms.Unwrap())  // 我是原因

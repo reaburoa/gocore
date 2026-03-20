@@ -38,7 +38,7 @@ func init() {
 	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	cfg.EncoderConfig.StacktraceKey = ""
 	cfg.EncoderConfig.MessageKey = "content"
-	l, err := cfg.Build(zap.AddCallerSkip(4))
+	l, err := cfg.Build(zap.AddCallerSkip(6))
 	if err != nil {
 		log.Printf("l.initZap(),err:%+v", err)
 		return
@@ -62,7 +62,7 @@ func SetLogLevel(logLevel string) {
 		cfg.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
 	}
 
-	Logger, err := cfg.Build(zap.AddCallerSkip(4))
+	Logger, err := cfg.Build(zap.AddCallerSkip(6))
 	if err != nil {
 		log.Printf("l.initZap(),err:%+v.\n", err)
 		return
@@ -97,15 +97,26 @@ func InitFileLog(logPath ...string) {
 	cfg.ErrorOutputPaths = []string{filename, "stderr"}
 	SetLogLevel(viper.GetEnvConfig("log.level").String())
 	once.Do(func() {
-		go updateLogFile(path)
+		go func() {
+			defer recoverPanic()
+			updateLogFile(path)
+		}()
 	})
+}
+
+func recoverPanic() {
+	if r := recover(); r != nil {
+		log.Printf("glog recovered from panic: %v", r)
+	}
 }
 
 // updateLogFile 检测是否跨天了,把记录记录到新的文件目录中
 func updateLogFile(logPath string) {
 	var err error
-	viper.C.SetDefault("log.saveDays", "7")
-	saveDays := viper.GetEnvConfig("system.saveDays").Float64()
+	saveDays := viper.GetEnvConfig("log.saveDays").Float64()
+	if saveDays == 0 {
+		saveDays = 7
+	}
 	if logPath == "" {
 		logPath = file.GetPath() + "/Runtime/"
 	}
@@ -117,8 +128,13 @@ func updateLogFile(logPath string) {
 		t := time.NewTimer(next.Sub(now))
 		<-t.C
 		// 以下为定时执行的操作
-		logfile.Close()
-		go deleteLog(logPath, saveDays)
+		if err = logfile.Close(); err != nil {
+			log.Printf("Error closing logfile: %v", err)
+		}
+		go func() {
+			defer recoverPanic()
+			deleteLog(logPath, saveDays)
+		}()
 		filename := logPath + time.Now().Format("2006-01-02") + ".log"
 		logfile, err = os.Create(logPath + time.Now().Format("2006-01-02") + ".log")
 		if err != nil {
@@ -126,7 +142,7 @@ func updateLogFile(logPath string) {
 		}
 		cfg.ErrorOutputPaths = []string{filename, "stderr"}
 		cfg.OutputPaths = []string{filename, "stdout"}
-		l, err := cfg.Build()
+		l, err := cfg.Build(zap.AddCallerSkip(6))
 		if err != nil {
 			log.Println(err)
 			continue

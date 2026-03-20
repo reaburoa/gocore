@@ -16,8 +16,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var dbMap sync.Map
-var closeOnce sync.Once
+var (
+	dbMap     sync.Map
+	closeOnce sync.Once
+)
 
 // NewDB 初始化db
 func NewDB(dbname string) {
@@ -29,7 +31,7 @@ func NewDB(dbname string) {
 	err = utils.Retry(func() error {
 		orm, err = openDB(dbname)
 		if err != nil {
-			glog.ErrorF("UpdateDB(%s) error:%+v", dbname, err)
+			glog.ErrorF("UpdateDB(%s) failed, err=%+v", dbname, err)
 			return err
 		}
 		return nil

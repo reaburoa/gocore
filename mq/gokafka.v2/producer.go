@@ -13,8 +13,10 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-var ProducerPool sync.Map
-var closeOnce sync.Once
+var (
+	ProducerPool sync.Map
+	closeOnce    sync.Once
+)
 
 type Producer struct {
 	Writer     *kafka.Writer
@@ -100,7 +102,7 @@ func (w *Producer) Send(ctx context.Context, topic string, key string, value []b
 	result := "success"
 	if err != nil {
 		result = "fail"
-		glog.ErrorC(ctx, "Kafka WriteMessages unexpected error:%v topic:%v key:%s value:%s", err, topic, key, value)
+		glog.ErrorC(ctx, "Kafka WriteMessages failed, err=%v, topic=%s, key=%s, value=%s", err, topic, key, value)
 	}
 	metricsResult.WithLabelValues(topic, pub, result).Inc()
 	metricReqDuration.WithLabelValues(topic, pub).Observe(float64(time.Since(startTime).Milliseconds()))
@@ -113,7 +115,7 @@ func (w *Producer) SendBatch(ctx context.Context, msgs ...kafka.Message) error {
 	result := "success"
 	if err != nil {
 		result = "fail"
-		glog.ErrorC(ctx, "Kafka WriteMessages unexpected error:%v len(msgs)=%v", err, len(msgs))
+		glog.ErrorC(ctx, "Kafka WriteMessages failed, err=%v, len(msgs)=%d", err, len(msgs))
 	}
 	cost := float64(time.Since(startTime).Milliseconds())
 	for _, msg := range msgs {
@@ -131,9 +133,9 @@ func Close() {
 			p.cancel()
 			err := p.Writer.Close()
 			if err != nil {
-				glog.ErrorF("Kafka Producer close error:%v, conf= %v", err, formatWriterConfig(p.configName, p.Writer))
+				glog.ErrorF("Kafka Producer close failed, err=%v, conf=%v", err, formatWriterConfig(p.configName, p.Writer))
 			} else {
-				glog.InfoF("Kafka Producer close success, conf= %v", formatWriterConfig(p.configName, p.Writer))
+				glog.InfoF("Kafka Producer close success, conf=%v", formatWriterConfig(p.configName, p.Writer))
 			}
 		}
 		return true

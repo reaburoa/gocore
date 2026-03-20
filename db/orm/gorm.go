@@ -59,7 +59,7 @@ func NewOrUpdateDB(dbname string) error {
 	err = utils.Retry(func() error {
 		orm, err = openORM(dbname)
 		if err != nil {
-			glog.ErrorF("UpdateDB(%s) error:%+v", dbname, err)
+			glog.ErrorF("UpdateDB(%s) failed, err=%+v", dbname, err)
 			return err
 		}
 		return nil
